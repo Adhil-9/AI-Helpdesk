@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  helpdesk-postgres:
+    image: pgvector/pgvector:pg16
+    container_name: helpdesk-postgres
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+      - POSTGRES_DB=${DB_NAME:-helpdesk}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  helpdesk-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: helpdesk-backend
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - helpdesk-postgres
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+
+  helpdesk-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: helpdesk-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - helpdesk-backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
